@@ -1,0 +1,18 @@
+Actor Priorities:
+  Group 1 (priority = 1): customer, dealer
+  Group 2 (priority = 2): agent
+  Group 3 (priority = 3): ticketService
+
+Method Priorities:
+
+Class Customer:
+  Group 1 (priority = 1): start, done
+
+Class Dealer:
+  Group 1 (priority = 1): star, dior
+
+Class Agent:
+  Group 1 (priority = 1): ask
+
+Class TicketService:
+  Group 1 (priority = 1): process
