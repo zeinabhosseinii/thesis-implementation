@@ -4,6 +4,7 @@ from typing import Dict
 
 # ======== AST Analyzer ========
 class ASTAnalyzer(Visitor):
+    
     def __init__(self):
         self.actors = {}  # actor_name -> {statevars, methods}
         self.main_actors = []
