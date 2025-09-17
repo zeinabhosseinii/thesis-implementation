@@ -1,4 +1,3 @@
-
 # ======== Grammar Definition ========
 grammar = r"""
 ?start: model
@@ -18,25 +17,25 @@ var_decl: TYPE CNAME ";"
 
 method: "method" NAME priority_block? "{" stmt* "}" "end"
 
-?stmt: assign_stmt ";" 
-     | send_stmt ";" 
-     | "skip" ";" 
-     | "++" ";" 
-     | if_stmt
+?stmt: assign_stmt ";"
+    | send_stmt ";"
+    | "skip" ";"
+    | "++" ";"
+    | if_stmt
 
 assign_stmt: CNAME "=" expr
 send_stmt: CNAME "!" NAME
 if_stmt: "if" "(" expr ")" "{" stmt* "}" "else" "{" stmt* "}"
 
 ?expr: expr "+" expr   -> add
-     | expr "-" expr   -> sub
-     | expr "*" expr   -> mul
-     | expr "/" expr   -> div
-     | CNAME
-     | NUMBER
-     | ESCAPED_STRING
-     | "true"
-     | "false"
+    | expr "-" expr   -> sub
+    | expr "*" expr   -> mul
+    | expr "/" expr   -> div
+    | CNAME
+    | NUMBER
+    | ESCAPED_STRING
+    | "true"
+    | "false"
 
 TYPE: /[A-Z][a-zA-Z0-9_]*/
 NAME: /[a-z_][a-zA-Z0-9_]*/

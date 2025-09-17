@@ -1,0 +1,8 @@
+// Hierarchical Actor Group Graph
+digraph {
+	rankdir=TB
+	G0 [label="Group 1\nc1, c2, ticketService" color=lightgreen shape=box style=filled]
+	G1 [label="Group 2\nagent" color=lightgreen shape=box style=filled]
+	G0 -> G1
+	G1 -> G0
+}

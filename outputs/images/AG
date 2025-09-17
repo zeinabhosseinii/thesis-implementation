@@ -1,0 +1,10 @@
+// Actor Dependency Graph
+graph {
+	rankdir=LR
+	c1 [color=lightblue shape=ellipse style=filled]
+	c2 [color=lightblue shape=ellipse style=filled]
+	agent [color=lightblue shape=ellipse style=filled]
+	ticketService [color=lightblue shape=ellipse style=filled]
+	c1 -- c2
+	c2 -- ticketService
+}

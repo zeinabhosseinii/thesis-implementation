@@ -1,136 +1,100 @@
 from lark import Lark
-from grammar import grammar
-from ast_analysis import ASTAnalyzer
-from trdg_builder import TRDGBuilder
-from priority_assignment import generate_priority_text
 import pprint
 
+from src.grammar import grammar
+from src.erdg_nodes import RebecNode
+from src.ast_analyzer import ASTAnalyzer
+from src.erdg_builder import ERDGTestGenerator
 
 # ======== Example Usage ========
 if __name__ == "__main__":
     code = """
 actorclass Customer {
-  statevars
-      Boolean sent;
+ statevars
+     Boolean sent;
 
-  method customer {
-      sent = false;
-      self!start;
-  } end
+ method customer {
+     sent = false;
+     self!start;
+ } end
 
-  method start {
-      agent!ask;
-      sent = true;
-  } end
+ method start {
+     agent!ask;
+     sent = true;
+ } end
 
-  method done {
-      sent = false;
-  } end
+ method done {
+     sent = false;
+ } end
 }
 
-actorclass Dealer {
-  statevars
-      Boolean sent;
-
-  method dealer {
-      sent = false;
-      self!star;
-  } end
-
-  method star {
-      agent!ask;
-      sent = true;
-  } end
-
-  method dior {
-      if (sent) {
-          sent = false;
-      } else {
-          sent = true;
-      }
-  } end
-}
 
 actorclass Agent {
-  statevars
-      Boolean dummy;
+ statevars
+     Boolean dummy;
 
-  method agent {
-  } end
+ method agent {
+ } end
 
-  method ask {
-      ticketService!process;
-  } end
+ method ask {
+     ticketService!process;
+ } end
 }
 
 actorclass TicketService {
-  statevars
-      Boolean dummy;
+ statevars
+     Boolean dummy;
 
-  method ticketService {
-  } end
+ method ticketService {
+ } end
 
-  method process {
-      customer!done;
-      dealer!dior;
-  } end
+ method process {
+     customer!done;
+ } end
 }
 
 main {
-  customer actor: (Customer) priority 3;
-  dealer actor: (Dealer) priority 3;
-  agent actor: (Agent) priority 3;
-  ticketService actor: (TicketService) priority 3;
+   c1 actor: (Customer);
+   c2  actor: (Customer);
+   agent    actor: (Agent);
+   ticketService actor: (TicketService);
+
 }
 """
-
     try:
         # Step 1 & 2: Parse and analyze
         parser = Lark(grammar, start="model", parser="lalr")
         tree = parser.parse(code)
-        
+
         analyzer = ASTAnalyzer()
         analyzer.visit(tree)
         analysis_result = analyzer.get_summary()
-        
+        analyzer.draw_ast_graph("AST")
+
+
         print("\n=== Analysis Result ===")
         pprint.pprint(analysis_result)
-        
-        # Step 3: Build TRDG
-        trdg_builder = TRDGBuilder(analysis_result)
-        trdg_builder.build_trdg()
-        
-        # Step 4: Find and display dependencies
-        dependencies = trdg_builder.find_actor_dependencies()
-        print("\n=== Actor Dependencies ===")
-        for sender1, sender2, target in dependencies:
-            print(f"{sender1} و {sender2} نسبت به {target} وابستگی زمانی دارند")
-        
-        # Step 5: Visualizations
-        trdg_builder.visualize_trdg("rebeca_trdg")
-        trdg_builder.visualize_dependencies("actor_deps")
-        
-        # Step 6: Print summary
-        print("\n=== TRDG Summary ===")
-        summary = trdg_builder.get_trdg_summary()
-        pprint.pprint(summary)
-        
-        # Display intra-rebec dependencies
-        print("\n=== Intra-Rebec Dependencies ===")
-        for src, dst in trdg_builder.E_I:
-            print(f"{src} → {dst}")
-            
-        # Step 7: Generate priority assignment text
-        print("\n=== Priority Assignment Text ===")
-        priority_text = generate_priority_text(trdg_builder)
-        print(priority_text)
-        
-        with open("priority_assignment.txt", "w") as f:
-            f.write(priority_text)
-            
-        
+
+        # Step 3: Build ERDG and Generate Test Cases
+        test_generator = ERDGTestGenerator(analysis_result)
+        test_cases = test_generator.generate_dependency_guided_tests()
+        test_generator.draw_erdg("ERDG")
+
+        # Print results
+        test_generator.print_test_cases()
+
+        # Save results to file inside outputs/
+        with open("outputs/generated_scenario_cases.txt", "w") as f:
+            f.write(f"Generated {len(test_cases)} test cases\n\n")
+            for test_case in test_cases:
+                f.write(f"Test Case {test_case.id}:\n")
+                f.write(f"  Actor Priorities: {test_case.actor_priorities}\n")
+                f.write(f"  Method Priorities: {test_case.method_priorities}\n\n")
+
+        print(f"\n✅ Results saved to generated_test_cases.txt")
+
     except Exception as e:
         print(f"❌ Error occurred: {e}")
         import traceback
         traceback.print_exc()
-        
+

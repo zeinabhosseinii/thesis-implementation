@@ -1,10 +1,9 @@
 from lark import Visitor, Tree
-from typing import Dict
+from graphviz import Digraph
 
 
-# ======== AST Analyzer ========
+# ======== AST Analyzer (unchanged from previous) ========
 class ASTAnalyzer(Visitor):
-    
     def __init__(self):
         self.actors = {}  # actor_name -> {statevars, methods}
         self.main_actors = []
@@ -19,7 +18,7 @@ class ASTAnalyzer(Visitor):
             "statevars": set(),
             "methods": {}
         }
-        
+
         # Manually process children to maintain context
         for child in tree.children[1:]:  # Skip the class name
             if isinstance(child, Tree):
@@ -27,20 +26,20 @@ class ASTAnalyzer(Visitor):
                     self.visit_vars(child)
                 elif child.data == "method":
                     self.visit_method(child)
-        
+
         self.current_actor = None
-        
+
     def visit_vars(self, tree):
         print(f"Processing vars for actor: {self.current_actor}")
         for child in tree.children:
             if isinstance(child, Tree) and child.data == "var_decl":
                 self.visit_var_decl(child)
-    
+
     def visit_var_decl(self, tree):
         if self.current_actor is None:
             print(f"Error: var_decl called without current_actor set")
             return
-            
+
         var_name = tree.children[1].value
         print(f"Adding statevar {var_name} to {self.current_actor}")
         self.actors[self.current_actor]["statevars"].add(var_name)
@@ -49,7 +48,7 @@ class ASTAnalyzer(Visitor):
         if self.current_actor is None:
             print(f"Error: method called without current_actor set")
             return
-            
+
         method_name = None
         method_priority = None
 
@@ -58,7 +57,7 @@ class ASTAnalyzer(Visitor):
             if hasattr(child, 'type') and child.type == 'NAME':
                 method_name = child.value
                 break
-                
+
         for child in tree.children:
             if isinstance(child, Tree) and child.data == "priority_block":
                 method_priority = int(child.children[0].value)
@@ -83,11 +82,11 @@ class ASTAnalyzer(Visitor):
     def assign_stmt(self, tree):
         if self.current_actor is None or self.current_method is None:
             return
-            
+
         var_name = tree.children[0].value
         print(f"Method {self.current_method} writes to {var_name}")
         self.actors[self.current_actor]["methods"][self.current_method]["writes"].add(var_name)
-        
+
         # Visit RHS expression to find reads
         if len(tree.children) > 1:
             self.visit_expr(tree.children[1])
@@ -95,7 +94,7 @@ class ASTAnalyzer(Visitor):
     def visit_expr(self, tree):
         if self.current_actor is None or self.current_method is None:
             return
-            
+
         # Handle different expression types
         if isinstance(tree, Tree):
             if tree.data in ["add", "sub", "mul", "div"]:
@@ -112,7 +111,7 @@ class ASTAnalyzer(Visitor):
     def send_stmt(self, tree):
         if self.current_actor is None or self.current_method is None:
             return
-        
+
         target = tree.children[0].value
         message = tree.children[1].value
         print(f"Method {self.current_method} sends {message} to {target}")
@@ -123,7 +122,7 @@ class ASTAnalyzer(Visitor):
         for child in tree.children:
             if isinstance(child, Tree) and child.data == "actor_instance":
                 self.visit_actor_instance(child)
-                
+
     def visit_actor_instance(self, tree):
         try:
             instance_name = tree.children[0].value  # First CNAME (instance name)
@@ -148,9 +147,24 @@ class ASTAnalyzer(Visitor):
             print(tree.pretty())
             raise
 
-    
     def get_summary(self):
         return {
             "actors": self.actors,
             "main_instances": self.main_actors
         }
+    def draw_ast_graph(self, filename="AST"):
+        dot = Digraph(comment="AST Graph", format="png")
+        dot.attr(rankdir="TB")
+
+        # Add actor nodes
+        for actor, info in self.actors.items():
+            dot.node(actor, shape="box", style="filled", color="lightblue")
+
+            # Add method nodes
+            for method in info["methods"]:
+                m_node = f"{actor}.{method}"
+                dot.node(m_node, shape="ellipse", style="filled", color="lightgreen")
+                dot.edge(actor, m_node)
+
+        dot.render(f"outputs/images/{filename}", view=False)
+        print(f"✅ AST graph saved as {filename}.png")
