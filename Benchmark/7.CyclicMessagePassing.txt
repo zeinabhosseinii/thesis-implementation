@@ -1,135 +1,81 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2761
-\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 Menlo-Bold;\f1\fnil\fcharset0 Menlo-Regular;}
-{\colortbl;\red255\green255\blue255;\red128\green0\blue128;}
-{\*\expandedcolortbl;;\csgenericrgb\c50196\c0\c50196;}
-\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
-\deftab720
-\pard\pardeftab720\partightenfactor0
+reactiveclass O(5) {
+	knownrebecs {
+		A a;
+		B b;
+	}
+	O() {
+		self.O1();
+	}
+	msgsrv O1() {
+		a.m1();
+		b.m2();
+	}
+}
 
-\f0\b\fs24 \cf2 reactiveclass
-\f1\b0 \cf0  O(5) \{\
-	
-\f0\b \cf2 knownrebecs
-\f1\b0 \cf0  \{\
-		A a;\
-		B b;\
-	\}\
-	O() \{\
-		
-\f0\b \cf2 self
-\f1\b0 \cf0 .O1();\
-	\}\
-	
-\f0\b \cf2 msgsrv
-\f1\b0 \cf0  O1() \{\
-		a.m1();\
-		b.m2();\
-	\}\
-\}\
-\
+reactiveclass A(5) {
+	knownrebecs {
+		C c;
+	}
+	msgsrv m1() {
+		c.m3();
+	}
+}
 
-\f0\b \cf2 reactiveclass
-\f1\b0 \cf0  A(5) \{\
-	
-\f0\b \cf2 knownrebecs
-\f1\b0 \cf0  \{\
-		C c;\
-	\}\
-	
-\f0\b \cf2 msgsrv
-\f1\b0 \cf0  m1() \{\
-		c.m3();\
-	\}\
-\}\
-\
+reactiveclass B(5) {
+	knownrebecs {
+		D d;
+	}
+	msgsrv m2() {
+		d.m4();
+	}
+}
 
-\f0\b \cf2 reactiveclass
-\f1\b0 \cf0  B(5) \{\
-	
-\f0\b \cf2 knownrebecs
-\f1\b0 \cf0  \{\
-		D d;\
-	\}\
-	
-\f0\b \cf2 msgsrv
-\f1\b0 \cf0  m2() \{\
-		d.m4();\
-	\}\
-\}\
-\
+reactiveclass C(5) {
+	knownrebecs {
+		E e;
+	}
+	msgsrv m3() {
+		e.m3();
+	}
+}
 
-\f0\b \cf2 reactiveclass
-\f1\b0 \cf0  C(5) \{\
-	
-\f0\b \cf2 knownrebecs
-\f1\b0 \cf0  \{\
-		E e;\
-	\}\
-	
-\f0\b \cf2 msgsrv
-\f1\b0 \cf0  m3() \{\
-		e.m3();\
-	\}\
-\}\
-\
+reactiveclass D(5) {
+	knownrebecs {
+		E e;
+	}
+	msgsrv m4() {
+		e.m4();
+	}
+}
 
-\f0\b \cf2 reactiveclass
-\f1\b0 \cf0  D(5) \{\
-	
-\f0\b \cf2 knownrebecs
-\f1\b0 \cf0  \{\
-		E e;\
-	\}\
-	
-\f0\b \cf2 msgsrv
-\f1\b0 \cf0  m4() \{\
-		e.m4();\
-	\}\
-\}\
-\
+reactiveclass E(5) {
+	knownrebecs {
+		A a;
+		B b;
+	}
+	statevars {
+		int x;
+	}
+	E() {
+		x = 1;
+	}
+	msgsrv m4() {
+		x = x + 100;
+		assertion(x >= 2);
+		a.m1();
+	}
+	msgsrv m3() {
+		x = x * 2;
+		assertion(x >= 2);
+		b.m2();
+	}
+}
 
-\f0\b \cf2 reactiveclass
-\f1\b0 \cf0  E(5) \{\
-	
-\f0\b \cf2 knownrebecs
-\f1\b0 \cf0  \{\
-		A a;\
-		B b;\
-	\}\
-	
-\f0\b \cf2 statevars
-\f1\b0 \cf0  \{\
-		
-\f0\b \cf2 int
-\f1\b0 \cf0  x;\
-	\}\
-	E() \{\
-		x = 1;\
-	\}\
-	
-\f0\b \cf2 msgsrv
-\f1\b0 \cf0  m4() \{\
-		x = x + 100;\
-		assertion(x >= 2);\
-		a.m1();\
-	\}\
-	
-\f0\b \cf2 msgsrv
-\f1\b0 \cf0  m3() \{\
-		x = x * 2;\
-		assertion(x >= 2);\
-		b.m2();\
-	\}\
-\}\
-\
-
-\f0\b \cf2 main
-\f1\b0 \cf0  \{\
-	E e(a, b):();\
-	C c(e):();\
-	D d(e):();\
-	A a(c):();\
-	B b(d):();\
-	O o(a, b):();\
-\}\
+main {
+	E e(a, b):();
+	C c(e):();
+	D d(e):();
+	A a(c):();
+	B b(d):();
+	O o(a, b):();
 }
