@@ -1,0 +1,376 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2761
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;\f1\fnil\fcharset0 Menlo-Bold;}
+{\colortbl;\red255\green255\blue255;\red0\green128\blue128;\red128\green0\blue128;}
+{\*\expandedcolortbl;;\csgenericrgb\c0\c50196\c50196;\csgenericrgb\c50196\c0\c50196;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs24 \cf2 /***********\cf0 \
+\cf2 TinyOS Sensing App (worst case task lengths, distributed)\cf0 \
+\cf2 V5\cf0 \
+\cf2 Reactive classes: CPU, Sensor, Radio, Misc, ...\cf0 \
+\cf2 CPU handles the interrupts (events) coming from Sensor, Radio, and Misc\cf0 \
+\cf2 The interrupts come in periodically, modeled by \\"after\\" in Rebeca.\cf0 \
+\cf2 Each takes a while to handle, modeled by \\"delay\\" in Rebeca.\cf0 \
+\cf2 ************/\cf0 \
+\
+env 
+\f1\b \cf3 int
+\f0\b0 \cf0  samplingRate = 50;\
+env 
+\f1\b \cf3 int
+\f0\b0 \cf0  numberOfNodes = 6;\
+env 
+\f1\b \cf3 int
+\f0\b0 \cf0  bufferSize = 4;         \cf2 // number of sensor samples per packet (1 to 9)\cf0 \
+env 
+\f1\b \cf3 int
+\f0\b0 \cf0  sensorTaskDelay = 2;    \cf2 // worst-case length of sensor task\cf0 \
+\
+env 
+\f1\b \cf3 int
+\f0\b0 \cf0  tmdaSlotSize = 10;\
+\
+env 
+\f1\b \cf3 int
+\f0\b0 \cf0  miscPeriod = 120;\
+env 
+\f1\b \cf3 int
+\f0\b0 \cf0  OnePacketTransmissionTime = 7;     \cf2 // worst-case length of radio task\cf0 \
+env 
+\f1\b \cf3 int
+\f0\b0 \cf0  miscTaskDelay = 10;     \cf2 // worst-case length of misc task\cf0 \
+env 
+\f1\b \cf3 int
+\f0\b0 \cf0  packetMaximumSize = 112;\
+\
+\cf2 //TinyOS 2006: 133 bytes packets (112 bytes of data)\cf0 \
+\cf2 //the 8-bit node ID, 4 channels of 16-bit data, and a 32-bit timestamp for accurate reconstruction of the data. Thus, the total packet payload is limited to a minimum of 14 bytes\cf0 \
+\cf2 //which is comprised of 4 channels of 16-bit sensor data, an associated 32-bit time stamp, and an 8-bit node ID. Thus, the payload when buffering three and nine samples is 38 and 110 bytes respectively. A maximum of nine buffered samples is considered, since the maxi- mum data payload of one radio packet dictated by the IEEE 802.15.4 protocol and TinyOS 1.x standard MAC protocol is 112 bytes (see Figure 7). The three sample buffer offers an increase in network size over the previous approach with a relatively small increase in payload size, which will slightly decrease the maximum sampling rate as discussed later.\cf0 \
+\
+\cf2 //Default TOSH_DATA_LENGTH value is 24 bytes\cf0 \
+\
+\pard\pardeftab720\partightenfactor0
+
+\f1\b \cf3 reactiveclass
+\f0\b0 \cf0  CPU(10) \{\
+    
+\f1\b \cf3 knownrebecs
+\f0\b0 \cf0  \{\
+        CommunicationDevice senderDevice;\
+        CommunicationDevice receiverDevice;\
+        Sensor sensor;\
+    \}\
+\
+    
+\f1\b \cf3 statevars
+\f0\b0 \cf0  \{\
+        
+\f1\b \cf3 int
+\f0\b0 \cf0  collectedSamplesCounter;\
+    \}\
+\
+    CPU() \{\
+        collectedSamplesCounter = 0;\
+    \}\
+\
+    
+\f1\b \cf3 msgsrv
+\f0\b0 \cf0  sensorEvent(
+\f1\b \cf3 int
+\f0\b0 \cf0  period) \{\
+        
+\f1\b \cf3 self
+\f0\b0 \cf0 .sensorTask(period, currentMessageWaitingTime);\
+    \}\
+\
+    
+\f1\b \cf3 msgsrv
+\f0\b0 \cf0  sensorTask(
+\f1\b \cf3 int
+\f0\b0 \cf0  period, 
+\f1\b \cf3 int
+\f0\b0 \cf0  lag) \{\
+        \cf2 // check sensor deadline\cf0 \
+        \cf2 //int tmp = period - lag - currentMessageWaitingTime;\cf0 \
+        \cf2 //assertion(tmp >= 0);\cf0 \
+        assertion(period - lag - currentMessageWaitingTime >= 0);\
+\
+        \cf2 // process sensor sample\cf0 \
+        delay(sensorTaskDelay);\
+\
+        \cf2 // send a radio message every 'bufferSize' samples\cf0 \
+        collectedSamplesCounter += 1;\
+\
+        
+\f1\b \cf3 if
+\f0\b0 \cf0  (collectedSamplesCounter == bufferSize) \{\
+            \cf2 // The collected data is packet into one packet\cf0 \
+            senderDevice.send(receiverDevice, 0, 1);\
+            collectedSamplesCounter = 0;\
+        \}\
+    \}\
+\
+    
+\f1\b \cf3 msgsrv
+\f0\b0 \cf0  miscEvent() \{\
+        \cf2 // perform misc task\cf0 \
+        delay(miscTaskDelay);\
+    \}\
+\}\
+\
+
+\f1\b \cf3 reactiveclass
+\f0\b0 \cf0  Sensor(10) \{\
+    
+\f1\b \cf3 knownrebecs
+\f0\b0 \cf0  \{\
+        CPU cpu;\
+    \}\
+\
+    Sensor() \{\
+        
+\f1\b \cf3 self
+\f0\b0 \cf0 .sensorFirst();\
+    \}\
+\
+    
+\f1\b \cf3 msgsrv
+\f0\b0 \cf0  sensorFirst() \{\
+        
+\f1\b \cf3 self
+\f0\b0 \cf0 .sensorLoop() after(?(10, 20, 30));\
+    \}\
+\
+    
+\f1\b \cf3 msgsrv
+\f0\b0 \cf0  sensorLoop() \{\
+        
+\f1\b \cf3 int
+\f0\b0 \cf0  period = 1000 / samplingRate;\
+        cpu.sensorEvent(period);\
+        
+\f1\b \cf3 self
+\f0\b0 \cf0 .sensorLoop() after(period);\
+    \}\
+\}\
+\
+
+\f1\b \cf3 reactiveclass
+\f0\b0 \cf0  Misc(10) \{\
+    
+\f1\b \cf3 knownrebecs
+\f0\b0 \cf0  \{\
+        CPU cpu;\
+    \}\
+\
+    Misc() \{\
+        
+\f1\b \cf3 self
+\f0\b0 \cf0 .miscFirst();\
+    \}\
+\
+    
+\f1\b \cf3 msgsrv
+\f0\b0 \cf0  miscFirst() \{\
+        
+\f1\b \cf3 self
+\f0\b0 \cf0 .miscLoop() after(?(10,20,30));\
+    \}\
+\
+    
+\f1\b \cf3 msgsrv
+\f0\b0 \cf0  miscLoop() \{\
+        cpu.miscEvent();\
+        
+\f1\b \cf3 self
+\f0\b0 \cf0 .miscLoop() after(miscPeriod);\
+    \}\
+\}\
+\
+
+\f1\b \cf3 reactiveclass
+\f0\b0 \cf0  WirelessMedium(5) \{\
+    
+\f1\b \cf3 statevars
+\f0\b0 \cf0  \{\
+		CommunicationDevice senderDevice;\
+		CommunicationDevice receiverDevice;\
+        
+\f1\b \cf3 int
+\f0\b0 \cf0  maxTraffic;\
+    \}\
+\
+    WirelessMedium() \{\
+    	senderDevice = null;\
+    	receiverDevice = null;\
+\
+        \cf2 //The radio offers a theoretical maximum transfer speed of 250 Kbits/sec. When considering only the maximum possible data payload, the maximum data throughput further reduces to about 125 Kbps.\cf0 \
+\
+        maxTraffic = (125 * 1024) / 8;\
+    \}\
+    \
+    
+\f1\b \cf3 msgsrv
+\f0\b0 \cf0  getStatus() \{\
+    	((CommunicationDevice)
+\f1\b \cf3 sender
+\f0\b0 \cf0 ).receiveStatus(senderDevice != null);\
+    \}\
+\
+    
+\f1\b \cf3 msgsrv
+\f0\b0 \cf0  broadcast(CommunicationDevice receiver, 
+\f1\b \cf3 int
+\f0\b0 \cf0  data, 
+\f1\b \cf3 int
+\f0\b0 \cf0  packetsNumber) \{\
+    	
+\f1\b \cf3 if
+\f0\b0 \cf0 (senderDevice == null) \{\
+	    	senderDevice = (CommunicationDevice)
+\f1\b \cf3 sender
+\f0\b0 \cf0 ;\
+	    	receiverDevice = receiver;\
+	    	
+\f1\b \cf3 self
+\f0\b0 \cf0 .broadcastingIsCompleted() after(packetsNumber * OnePacketTransmissionTime);\
+	    	((CommunicationDevice)
+\f1\b \cf3 sender
+\f0\b0 \cf0 ).receiveResult(
+\f1\b \cf3 true
+\f0\b0 \cf0 ) after(packetsNumber * OnePacketTransmissionTime);\
+            receiverDevice.receiveData(receiver, data, packetsNumber);\
+	    \} 
+\f1\b \cf3 else
+\f0\b0 \cf0  \{\
+            \cf2 //Collision is detected\cf0 \
+            ((CommunicationDevice)
+\f1\b \cf3 sender
+\f0\b0 \cf0 ).receiveResult(
+\f1\b \cf3 false
+\f0\b0 \cf0 );\
+        \}\
+    \}\
+\
+    
+\f1\b \cf3 msgsrv
+\f0\b0 \cf0  broadcastingIsCompleted() \{\
+    	senderDevice = null;\
+    	receiverDevice = null;\
+    \}\
+\}\
+\
+
+\f1\b \cf3 reactiveclass
+\f0\b0 \cf0  CommunicationDevice (10) \{\
+    \
+    
+\f1\b \cf3 knownrebecs
+\f0\b0 \cf0  \{\
+		WirelessMedium medium;\
+    \}\
+\
+    
+\f1\b \cf3 statevars
+\f0\b0 \cf0  \{\
+    	
+\f1\b \cf3 byte
+\f0\b0 \cf0  id;\
+        
+\f1\b \cf3 int
+\f0\b0 \cf0  sendingData;\
+\
+        
+\f1\b \cf3 int
+\f0\b0 \cf0  sendingPacketsNumber;\
+        CommunicationDevice receiverDevice;\
+    \}\
+\
+    CommunicationDevice(
+\f1\b \cf3 byte
+\f0\b0 \cf0  myId) \{\
+		id = myId;\
+        sendingData = 0;\
+        sendingPacketsNumber = 0;\
+        receiverDevice = null;\
+	\}\
+\
+	
+\f1\b \cf3 msgsrv
+\f0\b0 \cf0  send(CommunicationDevice receiver, 
+\f1\b \cf3 int
+\f0\b0 \cf0  data, 
+\f1\b \cf3 int
+\f0\b0 \cf0  packetsNumber) \{\
+        \cf2 //Communication device must be free prior to sending data\cf0 \
+        assertion(receiverDevice == null);\
+\
+        sendingPacketsNumber = packetsNumber;\
+        receiverDevice = receiver;\
+        sendingData = data;\
+\
+        medium.getStatus();\
+	\}\
+\
+	
+\f1\b \cf3 msgsrv
+\f0\b0 \cf0  receiveStatus(
+\f1\b \cf3 boolean
+\f0\b0 \cf0  result) \{\
+        assertion(!result);\
+        delay((numberOfNodes / 2) * (OnePacketTransmissionTime + 1));\
+		medium.broadcast(receiverDevice, sendingData, sendingPacketsNumber);\
+        delay(OnePacketTransmissionTime * sendingPacketsNumber);\
+	\}\
+\
+	
+\f1\b \cf3 msgsrv
+\f0\b0 \cf0  receiveResult(
+\f1\b \cf3 boolean
+\f0\b0 \cf0  result) \{\
+        assertion(result);\
+        sendingPacketsNumber = 0;\
+        receiverDevice = null;\
+        sendingData = 0;\
+	\}\
+\
+    
+\f1\b \cf3 msgsrv
+\f0\b0 \cf0  receiveData(CommunicationDevice receiver, 
+\f1\b \cf3 int
+\f0\b0 \cf0  data, 
+\f1\b \cf3 int
+\f0\b0 \cf0  receivingPacketsNumber) \{\
+    	
+\f1\b \cf3 if
+\f0\b0 \cf0  (rceiver == 
+\f1\b \cf3 self
+\f0\b0 \cf0 ) \{\
+            delay(receivingPacketsNumber * OnePacketTransmissionTime);\
+    	\}\
+    \}\
+\}\
+\
+\
+
+\f1\b \cf3 main
+\f0\b0 \cf0  \{\
+	WirelessMedium medium():();\
+\
+    CPU cpu (sensorNodeSenderDevice, receiver, sensor):();\
+    Sensor sensor(cpu):();\
+    Misc misc(cpu):();\
+    CommunicationDevice sensorNodeSenderDevice(medium):((
+\f1\b \cf3 byte
+\f0\b0 \cf0 )1);\
+	CommunicationDevice receiver(medium):((
+\f1\b \cf3 byte
+\f0\b0 \cf0 )0);\
+\}\
+\
+\
+\
+\
+}
