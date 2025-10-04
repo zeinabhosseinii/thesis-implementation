@@ -1,0 +1,70 @@
+reactiveclass Customer(10) {
+	knownrebecs { Agent agent; 
+		LoggerService logger;
+	}
+	statevars { boolean sent; }
+
+	Customer() {
+		sent = false;
+		self.start();
+	}
+
+	msgsrv start() {
+		sent = true;
+		agent.requestTicket();
+	}
+
+	msgsrv ticketIssued() {
+		sent = false;
+		agent.confirmation();
+		logger.logEvent();
+	}
+}
+
+reactiveclass Agent(10) {
+	knownrebecs { TicketService ts; }
+	statevars { boolean shared; }
+
+	Agent() { shared = false; }
+
+	msgsrv requestTicket() {
+		ts.handleRequest((Customer)sender);
+	}
+
+	msgsrv notifyFromTS() {		
+	}
+	
+	msgsrv confirmation() {
+		// placeholder for further logic
+	}
+}
+
+reactiveclass TicketService(10) {
+	knownrebecs { Agent agent; }
+
+	TicketService() { }
+
+	msgsrv handleRequest(Customer c) {
+		c.ticketIssued();
+		agent.notifyFromTS();
+	}
+}
+
+reactiveclass LoggerService(10) {
+	LoggerService() { }
+	
+	msgsrv logEvent() {
+		self.ack();
+	}
+	
+	msgsrv ack() {
+		self.logEvent();
+	}
+}
+
+main {
+	Agent agent(ts):();
+	TicketService ts(agent):();
+	Customer customer(agent, logger):();
+	LoggerService logger():();
+}
