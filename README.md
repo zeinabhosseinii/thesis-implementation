@@ -32,10 +32,10 @@ thesis-implementation/
    - Graphs: `outputs/images/` (AST.png, ERDG.png, AG.png, HAG.png)
    - Test cases: `outputs/generated_scenario_cases.txt`
   
-Notes
-The tool implements the step-by-step algorithm described in the thesis.
-Unlike older approaches that generate multiple scenarios or test cases, this implementation produces a single dependency-aware scheduling order representing the reduced state space.
-The reduced state space can be directly explored in Afra or other model checking tools.
+## Notes
+- The tool implements the step-by-step algorithm described in the thesis.
+- Unlike older approaches that generate multiple scenarios or test cases, this implementation produces a single dependency-aware scheduling order representing the reduced state space.
+- The reduced state space can be directly explored in Afra or other model checking tools.
 
 
 ## Contact
